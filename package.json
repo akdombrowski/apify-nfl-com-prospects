@@ -1,0 +1,34 @@
+{
+  "name": "apify-nfl-com-prospects",
+  "version": "0.0.1",
+  "description": "apify-nfl-com-prospects.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akdombrowski/apify-nfl-com-prospects.git"
+  },
+  "keywords": [
+    "apify",
+    "nfl",
+    "draft",
+    "2022",
+    "prospects",
+    "players",
+    "college",
+    "ncaa"
+  ],
+  "author": "Anthony Dombrowski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/akdombrowskiapify-nfl-com-prospects/issues"
+  },
+  "homepage": "https://github.com/akdombrowski/apify-nfl-com-prospects#readme",
+  "dependencies": {
+    "apify": "^2.2.1",
+    "puppeteer": "^13.1.2"
+  }
+}
