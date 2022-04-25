@@ -12,7 +12,7 @@ Apify.main(async () => {
   // a user interface for it, add INPUT_SCHEMA.json file to your actor.
   // For more information, see https://docs.apify.com/actors/development/input-schema
   const input = {
-    url: "https://www.navyfederal.org/loans-cards/mortgage/mortgage-rates/conventional-fixed-rate-mortgages.html",
+    url: "https://www.nfl.com/prospects/participants/all/",
   };
 
   if (!input || !input.url)
@@ -40,87 +40,90 @@ Apify.main(async () => {
         title,
       });
 
-      console.log("Getting interest rates...");
-      let term;
-      let interestRate;
-      let discountPoints;
-      let apr;
-      let obj = {};
+      console.log("Getting nfl draft prospects...");
+      let players;
+      let player;
 
-      const interestRatesTable = await page.$(".table-resp");
-
-      // example output:
-      // [
-      //    'Term\tInterest Rates As Low As\tDiscount Points\tAPR As Low As',
-      //    '15 Year\t2.500%\t0.750\t2.751%',
-      //    '15 Year Jumbo\t2.500%\t0.750\t2.751%',
-      //    '30 Year\t3.125%\t1.125\t3.295%',
-      //    '30 Year Jumbo\t3.000%\t1.125\t3.169%'
-      // ]
-      const conventional30yrRate = await interestRatesTable.$$eval(
-        "tr",
-        (trs) => {
-          let obj = {};
-
-          // tr is a table row in the interest rates table. we want to extract
-          // the interest rate for the row that starts with 30 year. Each
-          // table row itself has children. The first of which is a table header
-          // indicating the term of the loan, ie, 30 Year.
-          for (tr of trs) {
-            // tr.children looks like: [th, td, td, td]
-            let children = tr.children;
-
-            // remember we're mapping, which means we'll hit this once for each of the rows
-            // we want to iterate through the table row's elements, aka children, until we find the one
-            // with the string 30 Year
-            for (const child of children) {
-              // remember child will be a th or td (see tr.children above)
-              // each child will have a firstChild. and its data looks like the below.
-              // for th, it looks like: "30 Year "
-              // for td, it looks like: "3.125"
-              // for 2nd td, it looks like: "1.125"
-              // for 3rd td, it looks like: "3.295"
-              if (
-                child.firstChild.textContent &&
-                child.firstChild.textContent.endsWith("30 Year ")
-              ) {
-                // we're in the right row, extract data
-                // table heading, th
-                // e.g., 30 Year
-
-                obj.term = children[0].innerText;
-                // 1st table data, td
-                // e.g., 3.125
-                obj.interestRate = children[1].innerText;
-                // 2nd table data, td
-                // e.g., 1.125
-                obj.discountPoints = children[2].innerText;
-                // 3rd table data, td
-                // e.g., 3.295
-                obj.apr = children[3].innerText;
-              }
-            }
-          }
-
-          obj.date = String(
-            new Date().toLocaleString("en-US", { timezone: "America/Chicago" })
-          );
-
-          return obj;
-        }
+      page.waitForXpath(
+        "//body[1]/div[3]/main[1]/section[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[3]/div[1]/div[1]/div[1]"
       );
 
-      console.log(conventional30yrRate);
+      const playerInfos = await page.$$(".css-view-1dbjc4n");
 
-      await Apify.pushData(conventional30yrRate);
-      await Apify.setValue("term", conventional30yrRate.term);
-      await Apify.setValue("interestRate", conventional30yrRate.interestRate);
-      await Apify.setValue(
-        "discountPoints",
-        conventional30yrRate.discountPoints
-      );
-      await Apify.setValue("apr", conventional30yrRate.apr);
-      await Apify.setValue("date", conventional30yrRate.date);
+      console.log(playerInfos);
+
+      // // example output:
+      // // [
+      // //    'Term\tInterest Rates As Low As\tDiscount Points\tAPR As Low As',
+      // //    '15 Year\t2.500%\t0.750\t2.751%',
+      // //    '15 Year Jumbo\t2.500%\t0.750\t2.751%',
+      // //    '30 Year\t3.125%\t1.125\t3.295%',
+      // //    '30 Year Jumbo\t3.000%\t1.125\t3.169%'
+      // // ]
+      // const conventional30yrRate = await interestRatesTable.$$eval(
+      //   "tr",
+      //   (trs) => {
+      //     let obj = {};
+
+      //     // tr is a table row in the interest rates table. we want to extract
+      //     // the interest rate for the row that starts with 30 year. Each
+      //     // table row itself has children. The first of which is a table header
+      //     // indicating the term of the loan, ie, 30 Year.
+      //     for (tr of trs) {
+      //       // tr.children looks like: [th, td, td, td]
+      //       let children = tr.children;
+
+      //       // remember we're mapping, which means we'll hit this once for each of the rows
+      //       // we want to iterate through the table row's elements, aka children, until we find the one
+      //       // with the string 30 Year
+      //       for (const child of children) {
+      //         // remember child will be a th or td (see tr.children above)
+      //         // each child will have a firstChild. and its data looks like the below.
+      //         // for th, it looks like: "30 Year "
+      //         // for td, it looks like: "3.125"
+      //         // for 2nd td, it looks like: "1.125"
+      //         // for 3rd td, it looks like: "3.295"
+      //         if (
+      //           child.firstChild.textContent &&
+      //           child.firstChild.textContent.endsWith("30 Year ")
+      //         ) {
+      //           // we're in the right row, extract data
+      //           // table heading, th
+      //           // e.g., 30 Year
+
+      //           obj.term = children[0].innerText;
+      //           // 1st table data, td
+      //           // e.g., 3.125
+      //           obj.interestRate = children[1].innerText;
+      //           // 2nd table data, td
+      //           // e.g., 1.125
+      //           obj.discountPoints = children[2].innerText;
+      //           // 3rd table data, td
+      //           // e.g., 3.295
+      //           obj.apr = children[3].innerText;
+      //         }
+      //       }
+      //     }
+
+      //     obj.date = String(
+      //       new Date().toLocaleString("en-US", { timezone: "America/Chicago" })
+      //     );
+
+      //     return obj;
+      //   }
+      // );
+
+      // console.log(conventional30yrRate);
+
+      // await Apify.pushData(conventional30yrRate);
+      // await Apify.setValue("term", conventional30yrRate.term);
+      // await Apify.setValue("interestRate", conventional30yrRate.interestRate);
+      // await Apify.setValue(
+      //   "discountPoints",
+      //   conventional30yrRate.discountPoints
+      // );
+      // await Apify.setValue("apr", conventional30yrRate.apr);
+      // await Apify.setValue("date", conventional30yrRate.date);
     } catch (error) {
       console.log("browser or other error:");
       console.log(error);
