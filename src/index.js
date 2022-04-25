@@ -50,6 +50,7 @@ Apify.main(async () => {
 
       const playerInfos = await page.$$(".css-view-1dbjc4n");
 
+      console.log("playerInfos");
       console.log(playerInfos);
 
       // // example output:
