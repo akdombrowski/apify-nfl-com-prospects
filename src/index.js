@@ -88,7 +88,6 @@ Apify.main(async () => {
         //
         const imgArr = await imgNode.$x(".//img");
         const imgLink = await imgArr[0].evaluate((node) => node.src);
-        await Apify.setValue("img", imgLink);
 
         //
         // name, year, position, team handling
@@ -103,9 +102,9 @@ Apify.main(async () => {
         const nameNode = nameYearArr[0];
         const yearNode = nameYearArr[1];
         const name = await nameNode.evaluate((node) => node.innerText);
-        await Apify.setValue("name", name);
         const year = await yearNode.evaluate((node) => node.innerText);
-        await Apify.setValue("year", year);
+
+        await Apify.pushData({name: name, img: img, year: year})
       }
 
       // await Apify.pushData(conventional30yrRate);
