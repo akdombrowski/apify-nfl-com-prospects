@@ -104,7 +104,7 @@ Apify.main(async () => {
         const name = await nameNode.evaluate((node) => node.innerText);
         const year = await yearNode.evaluate((node) => node.innerText);
 
-        await Apify.pushData({name: name, img: img, year: year})
+        await Apify.pushData({ name: name, img: imgLink, year: year });
       }
 
       // await Apify.pushData(conventional30yrRate);
