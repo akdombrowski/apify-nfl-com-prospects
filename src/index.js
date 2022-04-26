@@ -18,9 +18,18 @@ Apify.main(async () => {
   if (!input || !input.url)
     throw new Error('Input must be a JSON object with the "url" field!');
   try {
+    const launchContext = {
+      // Native Puppeteer options
+      launchOptions: {
+        //     headless: true,
+        //     args: ["--some-flag"],
+        timeout: 60000,
+        ignoreDefaultArgs: ["--disable-extensions"],
+      },
+    };
     log.info("Launching Puppeteer...");
     // console.log("Launching Puppeteer...");
-    const browser = await Apify.launchPuppeteer();
+    const browser = await Apify.launchPuppeteer(launchContext);
     try {
       console.log(`Opening page ${input.url}...`);
       const page = await browser.newPage();
@@ -41,80 +50,63 @@ Apify.main(async () => {
       });
 
       console.log("Getting nfl draft prospects...");
-      let players;
-      let player;
 
-      page.waitForXpath(
+      // wait for "loadedContent" which contains player list
+      // document.querySelector("#main-content > section:nth-child(3) > div > div > div > div > div > div.loadedContent")
+      //
+      console.log("Waiting for content to load...");
+      await page.waitForXPath(
         "//body[1]/div[3]/main[1]/section[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[3]/div[1]/div[1]/div[1]"
       );
 
-      const playerInfos = await page.$$(".css-view-1dbjc4n");
+      // load loadedContent node first and use that as a relative root
+      const loadedContent = await page.$(".loadedContent");
+      const playerInfoBlockArr = await loadedContent.$x("./div/div/div/div");
+      const playerInfoBlock = playerInfoBlockArr[0];
+      const players = await playerInfoBlock.$x("child::div");
+      const playerLinks = await playerInfoBlock.$x(".//a");
 
-      console.log("playerInfos");
-      console.log(playerInfos);
+      console.log("Number of players:");
+      console.log(players.length);
+      console.log("Number of playerLinks:");
+      console.log(playerLinks.length);
 
-      // // example output:
-      // // [
-      // //    'Term\tInterest Rates As Low As\tDiscount Points\tAPR As Low As',
-      // //    '15 Year\t2.500%\t0.750\t2.751%',
-      // //    '15 Year Jumbo\t2.500%\t0.750\t2.751%',
-      // //    '30 Year\t3.125%\t1.125\t3.295%',
-      // //    '30 Year Jumbo\t3.000%\t1.125\t3.169%'
-      // // ]
-      // const conventional30yrRate = await interestRatesTable.$$eval(
-      //   "tr",
-      //   (trs) => {
-      //     let obj = {};
+      const links = [];
+      for (const elementHandle of playerLinks) {
+        const href = await elementHandle.evaluate((node) => node.href);
+        const threeThingsContainer = await elementHandle.$x(
+          "./div/div/div/div/div/div"
+        );
+        links.push(href);
+        const theThreeThings = await threeThingsContainer[0].$x("./div");
+        const imgNode = theThreeThings[0];
+        const nameDetailsNode = theThreeThings[1];
+        const scoreNode = theThreeThings[2];
 
-      //     // tr is a table row in the interest rates table. we want to extract
-      //     // the interest rate for the row that starts with 30 year. Each
-      //     // table row itself has children. The first of which is a table header
-      //     // indicating the term of the loan, ie, 30 Year.
-      //     for (tr of trs) {
-      //       // tr.children looks like: [th, td, td, td]
-      //       let children = tr.children;
+        //
+        // image handling, left container
+        //
+        const imgArr = await imgNode.$x(".//img");
+        const imgLink = await imgArr[0].evaluate((node) => node.src);
+        await Apify.setValue("img", imgLink);
 
-      //       // remember we're mapping, which means we'll hit this once for each of the rows
-      //       // we want to iterate through the table row's elements, aka children, until we find the one
-      //       // with the string 30 Year
-      //       for (const child of children) {
-      //         // remember child will be a th or td (see tr.children above)
-      //         // each child will have a firstChild. and its data looks like the below.
-      //         // for th, it looks like: "30 Year "
-      //         // for td, it looks like: "3.125"
-      //         // for 2nd td, it looks like: "1.125"
-      //         // for 3rd td, it looks like: "3.295"
-      //         if (
-      //           child.firstChild.textContent &&
-      //           child.firstChild.textContent.endsWith("30 Year ")
-      //         ) {
-      //           // we're in the right row, extract data
-      //           // table heading, th
-      //           // e.g., 30 Year
+        //
+        // name, year, position, team handling
+        //
+        // break the middle container down into: 1) name and year 2) position and team.
+        const nameYearPositionTeamContainer = await nameDetailsNode.$x("./div");
+        const nameYear = nameYearPositionTeamContainer[0];
+        const positionTeam = nameYearPositionTeamContainer[1];
 
-      //           obj.term = children[0].innerText;
-      //           // 1st table data, td
-      //           // e.g., 3.125
-      //           obj.interestRate = children[1].innerText;
-      //           // 2nd table data, td
-      //           // e.g., 1.125
-      //           obj.discountPoints = children[2].innerText;
-      //           // 3rd table data, td
-      //           // e.g., 3.295
-      //           obj.apr = children[3].innerText;
-      //         }
-      //       }
-      //     }
-
-      //     obj.date = String(
-      //       new Date().toLocaleString("en-US", { timezone: "America/Chicago" })
-      //     );
-
-      //     return obj;
-      //   }
-      // );
-
-      // console.log(conventional30yrRate);
+        // split name and year to get each value
+        const nameYearArr = await nameYear.$x("./div");
+        const nameNode = nameYearArr[0];
+        const yearNode = nameYearArr[1];
+        const name = await nameNode.evaluate((node) => node.innerText);
+        await Apify.setValue("name", name);
+        const year = await yearNode.evaluate((node) => node.innerText);
+        await Apify.setValue("year", year);
+      }
 
       // await Apify.pushData(conventional30yrRate);
       // await Apify.setValue("term", conventional30yrRate.term);
@@ -127,12 +119,17 @@ Apify.main(async () => {
       // await Apify.setValue("date", conventional30yrRate.date);
     } catch (error) {
       console.log("browser or other error:");
+      log.error("browser or other error:");
       console.log(error);
+      log.error(error);
     } finally {
       console.log("Closing Puppeteer...");
+      log.info("Closing Puppeteer...");
+
       await browser.close();
 
       console.log("Done.");
+      log.info("Done.");
     }
   } catch (e) {
     console.log("Launch Puppeteer error:");
