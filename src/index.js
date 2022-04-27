@@ -90,7 +90,7 @@ Apify.main(async () => {
         const imgLink = await imgArr[0].evaluate((node) => node.src);
 
         //
-        // name, year, position, team handling
+        // name, year, position, team handling; middle container
         //
         // break the middle container down into: 1) name and year 2) position and team.
         const nameYearPositionTeamContainer = await nameDetailsNode.$x("./div");
@@ -102,9 +102,34 @@ Apify.main(async () => {
         const nameNode = nameYearArr[0];
         const yearNode = nameYearArr[1];
         const name = await nameNode.evaluate((node) => node.innerText);
-        const year = await yearNode.evaluate((node) => node.innerText);
+        const yearWithParen = await yearNode.evaluate((node) => node.innerText);
+        // strip year of parentheses
+        const year = yearWithParen.slice(1, 5);
 
-        await Apify.pushData({ name: name, img: imgLink, year: year });
+        const positionTeamString = await positionTeam.evaluate(
+          (node) => node.innerText
+        );
+        // split string into position and team
+        const posTeamStrArr = positionTeamString.split("•");
+        const position = posTeamStrArr[0].trim();
+        const team = posTeamStrArr[1].trim();
+
+        //
+        // score, right container
+        //
+        const scoreChildren = await scoreNode.$x("./div");
+        const scoreCount = await scoreChildren[0].evaluate(
+          (node) => node.innerText
+        );
+
+        await Apify.pushData({
+          name: name,
+          img: imgLink,
+          year: year,
+          pos: position,
+          team: team,
+          score: scoreCount,
+        });
       }
 
       // await Apify.pushData(conventional30yrRate);
